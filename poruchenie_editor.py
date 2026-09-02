@@ -88,8 +88,8 @@ TAG_LABELS = {
     "СодИнфКлнт": "Содержание информации клиента",
     "ОбщОбъявлСтГруз": "Общая объявленная стоимость груза",
     "СвГруз": "Сведения о грузе",
-    "СвГП": "Грузоотправитель",
-    "СвГО": "Грузополучатель",
+    "СвГП": "Грузополучатель",
+    "СвГО": "Грузоотправитель",
     "СвТС": "Транспортное средство",
     "ОбъявлСтГрузПарт": "Объявленная стоимость груза (партия)",
     "ОпГруз": "Описание груза",
@@ -120,8 +120,8 @@ ABBREV = {
     "ИНН": "ИНН", "КПП": "КПП", "КНД": "КНД", "ОКВ": "ОКВ", "ОКВЭД": "ОКВЭД",
     "ОКПО": "ОКПО", "ОГРН": "ОГРН", "ОГРНИП": "ОГРНИП", "УИД": "УИД",
     "Св": "Сведения", "Ид": "Идентификатор", "ИдСв": "Идентификационные сведения",
-    "ФИО": "ФИО", "ТС": "транспортное средство", "ГП": "грузоотправитель",
-    "ГО": "грузополучатель", "Клнт": "клиент", "Эксп": "экспедитор",
+    "ФИО": "ФИО", "ТС": "транспортное средство", "ГП": "грузополучатель",
+    "ГО": "грузоотправитель", "Клнт": "клиент", "Эксп": "экспедитор",
     "Груз": "груз", "Док": "документ", "Инф": "информация", "Наим": "наименование",
     "Ном": "номер", "Дат": "дата", "Вр": "время", "Ст": "стоимость",
     "Вес": "вес", "Объем": "объём", "Адр": "адрес", "Стр": "страна",
@@ -141,7 +141,7 @@ ABBREV = {
     "Идент": "идентификатор", "Пор": "поручение", "Дог": "договор",
     "Тр": "транспортная", "Экспед": "экспедиция", "Сод": "содержание",
     "Подп": "подпись", "Файл": "файл", "Документ": "документ",
-    "СвГП": "Грузоотправитель", "СвГО": "Грузополучатель",
+    "СвГП": "Грузополучатель", "СвГО": "Грузоотправитель",
     "СвТС": "Транспортное средство", "СвКлнт": "Клиент", "СвЭксп": "Экспедитор",
     "СвИП": "Индивидуальный предприниматель", "СвЮЛУч": "Юридическое лицо",
     "СвГруз": "Сведения о грузе", "СвСтрПроисх": "Страна происхождения",
@@ -363,18 +363,28 @@ class PoruchenieEditor:
                                      font=("Segoe UI", 13, "bold"))
         self.header_label.pack(anchor=tk.W, padx=12, pady=(8, 4))
 
-        canvas = tk.Canvas(right, bg=COLOR["panel"], highlightthickness=0)
-        ysb2 = ttk.Scrollbar(right, orient=tk.VERTICAL, command=canvas.yview,
+        self.fields_canvas = tk.Canvas(right, bg=COLOR["panel"], highlightthickness=0)
+        ysb2 = ttk.Scrollbar(right, orient=tk.VERTICAL,
+                             command=self.fields_canvas.yview,
                              style="Diadoc.Vertical.TScrollbar")
-        self.fields_frame = tk.Frame(canvas, bg=COLOR["panel"])
+        self.fields_frame = tk.Frame(self.fields_canvas, bg=COLOR["panel"])
         self.fields_frame.bind(
             "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            lambda e: self.fields_canvas.configure(
+                scrollregion=self.fields_canvas.bbox("all"))
         )
-        canvas.create_window((0, 0), window=self.fields_frame, anchor="nw")
-        canvas.configure(yscrollcommand=ysb2.set)
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.fields_canvas.create_window((0, 0), window=self.fields_frame,
+                                         anchor="nw")
+        self.fields_canvas.configure(yscrollcommand=ysb2.set)
+        self.fields_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         ysb2.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Прокрутка колесом мыши по правой панели
+        self.fields_canvas.bind(
+            "<MouseWheel>",
+            lambda e: self.fields_canvas.yview_scroll(
+                int(-1 * (e.delta / 120)), "units"))
+        self._bind_fields_mousewheel(self.fields_frame)
 
 
         # ---- Нижняя статусная панель (результат «проверки») ----
@@ -404,6 +414,21 @@ class PoruchenieEditor:
         self.status_icon.config(text=icons.get(kind, "i"),
                                 fg=colors.get(kind, COLOR["muted"]))
         self.status_text.config(text=text, fg=colors.get(kind, COLOR["muted"]))
+
+
+    # ---------- Прокрутка колесом мыши ----------
+    def _bind_fields_mousewheel(self, widget):
+        """Рекурсивно привязывает колесо мыши к полям правой панели."""
+        def _scroll(event):
+            self.fields_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            return "break"
+        try:
+            widget.bind("<MouseWheel>", _scroll)
+        except tk.TclError:
+            pass
+        for child in widget.winfo_children():
+            self._bind_fields_mousewheel(child)
+
 
 
     # ---------- Загрузка файла ----------
@@ -560,10 +585,14 @@ class PoruchenieEditor:
             self._add_row(row, _attr_label(key), element, key, value)
             row += 1
 
+        # Прокрутка колесом мыши по правой панели
+        self._bind_fields_mousewheel(self.fields_frame)
+
         if row == 0:
             tk.Label(self.fields_frame, text="В этом разделе нет редактируемых полей.",
                      bg=COLOR["panel"], fg=COLOR["muted"],
                      font=("Segoe UI", 10)).pack(anchor=tk.W, padx=12, pady=10)
+            self._bind_fields_mousewheel(self.fields_frame)
             return
 
         ttk.Button(self.fields_frame, text="Применить изменения раздела",
@@ -571,6 +600,7 @@ class PoruchenieEditor:
                    command=lambda: self.apply_section(element)
                    ).grid(row=row, column=0, columnspan=2, sticky=tk.W,
                           padx=12, pady=12)
+        self._bind_fields_mousewheel(self.fields_frame)
 
     def _add_row(self, row, label, element, key, value):
         tk.Label(self.fields_frame, text=label + ":",
