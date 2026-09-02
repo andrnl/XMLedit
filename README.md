@@ -16,6 +16,28 @@
 - `poruchenie_editor.py` — исходный код программы (Python + Tkinter).
 - `PoruchenieEditor.exe` — готовый исполняемый модуль (не требует установленного Python).
 - `81-70342.xml` — пример файла электронного поручения экспедитору.
+- `.venv/` — виртуальное окружение (Python + PyInstaller).
+- `requirements.txt` — зависимости для сборки exe.
+
+## Виртуальное окружение
+
+Для запуска из исходного кода используйте виртуальное окружение `.venv`:
+
+```powershell
+cd C:\Users\andrnl\Documents\Python\XMLedit
+.venv\Scripts\Activate.ps1          # активация (PowerShell)
+# или .venv\Scripts\activate.bat    # для cmd
+python poruchenie_editor.py         # запуск программы
+deactivate                          # деактивация
+```
+
+Пересоздать окружение при необходимости:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
 ## Запуск
 
@@ -25,7 +47,9 @@
 
 ### Из исходного кода
 
-```bash
+```powershell
+cd C:\Users\andrnl\Documents\Python\XMLedit
+.venv\Scripts\Activate.ps1
 python poruchenie_editor.py
 ```
 
@@ -39,9 +63,10 @@ python poruchenie_editor.py
 
 ## Сборка исполняемого модуля
 
-Для пересборки exe-файла используется PyInstaller:
+Для пересборки exe-файла используется PyInstaller (уже установлен в `.venv`):
 
-```bash
-pip install pyinstaller
+```powershell
+cd C:\Users\andrnl\Documents\Python\XMLedit
+.venv\Scripts\Activate.ps1
 pyinstaller --onefile --windowed --name "PoruchenieEditor" poruchenie_editor.py
 ```
